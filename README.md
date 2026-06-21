@@ -30,6 +30,7 @@ or entirely on your laptop with no email setup at all.
 - **Two depth modes** — a fast single-call `digest`, or a per-repo `detail` deep dive.
 - **You own the voice** — a single plain-text prompt file controls tone, depth, and which topics get explained in detail.
 - **Three ways to trigger** — daily cron, a manual `run/*` branch push, or just running it locally.
+<img width="960" height="663" alt="Screenshot 2026-06-21 at 23 01 49" src="https://github.com/user-attachments/assets/080f9dce-eff0-46fc-94d1-93d59550e5c2" />
 
 ---
 
