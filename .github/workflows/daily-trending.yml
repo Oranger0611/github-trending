@@ -1,0 +1,59 @@
+name: Daily GitHub Trending Digest
+
+on:
+  # ── DEFAULT MODE ──────────────────────────────────────────────
+  # Runs automatically every day on the `main` branch, using the
+  # prompt committed in prompts/instructions.md.
+  schedule:
+    # 00:00 UTC daily (= 07:00 Vietnam time, UTC+7). https://crontab.guru
+    - cron: "0 0 * * *"
+
+  # ── SPECIAL MODE ──────────────────────────────────────────────
+  # Push a branch whose name starts with `run/` to trigger a one-off
+  # digest immediately, using THAT branch's prompts/instructions.md.
+  # e.g.  git checkout -b run/explain-rust-deeply
+  #       (edit prompts/instructions.md)
+  #       git commit -am "deep dive on rust" && git push -u origin run/explain-rust-deeply
+  push:
+    branches:
+      - "run/**"
+
+  # Manual button in the Actions tab (uses whichever branch you pick).
+  workflow_dispatch: {}
+
+# Don't let two runs of the same branch email you twice; newest wins.
+concurrency:
+  group: digest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Send the digest
+        run: python -m src.main
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}   # optional; defaults to GMAIL_USER
+          # The cron always emails (never writes a local file on the runner).
+          OUTPUT: ${{ vars.OUTPUT || 'email' }}
+          # Optional overrides via repo Variables (Settings → Variables):
+          #   MODEL  e.g. claude-opus-4-8
+          #   MODE   digest | detail
+          MODEL: ${{ vars.MODEL }}
+          MODE: ${{ vars.MODE }}
+          # Auto-provided by Actions; raises the README fetch rate limit.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Note: GITHUB_EVENT_NAME / GITHUB_REF_NAME are default env vars the
+          # runner already provides, so the code reads them without mapping here.

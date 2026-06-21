@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Settings for the daily GitHub Trending digest.
+# (To change HOW repos are explained/summarized, edit prompts/instructions.md)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Languages to track. "" (empty) means "all languages".
+# Add more lines to track several, e.g. python, typescript, rust.
+languages:
+  - ""          # all languages
+  # - python
+  # - typescript
+
+# Trending window: daily | weekly | monthly
+since: daily
+
+# Default delivery (can be overridden by OUTPUT env / --html flag):
+#   email -> send via Gmail (used by the GitHub Actions cron)
+#   html  -> save a local HTML file and open it (no email needed)
+output: email
+
+# How the digest is written:
+#   digest -> ONE Claude call summarizes all repos together (fast, cheapest).
+#   detail -> ONE call PER repo using its README (deeper per-repo extraction),
+#             then a final call adds the opening line + "worth a closer look" pick.
+# Override per-run:  python -m src.main --mode detail   (or  MODE=detail ...)
+mode: digest
+
+# How many repos to include in the digest (after merging languages & de-duping).
+max_repos: 12
+
+# Pull each repo's README so the summary can go deeper than the one-line tagline.
+include_readme: true
+readme_chars: 6000   # how much of each README to feed the model (chars)
+
+# Claude model used to write the digest. Pick whichever you like:
+#   claude-opus-4-8    -> highest quality, most detailed (pricier)
+#   claude-sonnet-4-6  -> great quality, cheap (good daily default)
+#   claude-haiku-4-5-20251001 -> fastest & cheapest, lighter detail
+# You can also override per-run without editing this file:
+#   - CLI:  python -m src.main --model claude-opus-4-8
+#   - env:  MODEL=claude-opus-4-8 python -m src.main
+model: claude-sonnet-4-6
+
+# Email subject line. The date is appended automatically.
+subject_prefix: "🔥 GitHub Trending"
+
+# Where to send it. If left empty, falls back to the MAIL_TO env var,
+# then to GMAIL_USER (i.e. send to yourself).
+recipients:
+  # - you@example.com
