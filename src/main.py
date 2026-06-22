@@ -26,6 +26,7 @@ except ModuleNotFoundError:
     pass
 
 from .fetch_trending import fetch_many
+from .llm import get_client
 from .render_email import render_html
 from .send_email import send_email
 from .summarize import summarize, summarize_detailed
@@ -96,7 +97,8 @@ def main() -> int:
     parser.add_argument("--no-open", action="store_true",
                         help="With --html, don't auto-open the file in a browser")
     parser.add_argument("--model", default=None,
-                        help="Claude model to use (overrides MODEL env and config.yaml)")
+                        help="Model to use (overrides MODEL env and config.yaml). "
+                             "If omitted, uses your provider's default.")
     parser.add_argument("--mode", choices=["digest", "detail"], default=None,
                         help="digest = one call for all repos; "
                              "detail = one call per repo + README (deeper)")
@@ -106,8 +108,8 @@ def main() -> int:
     languages = config.get("languages") or [""]
     since = config.get("since", "daily")
     max_repos = int(config.get("max_repos", 12))
-    # Model priority: --model flag > MODEL env var > config.yaml > default.
-    model = args.model or os.environ.get("MODEL") or config.get("model", "claude-sonnet-4-6")
+    # Model: --model flag > MODEL env var > config.yaml > provider default (None).
+    model = args.model or os.environ.get("MODEL") or config.get("model") or None
     # Mode priority: --mode flag > MODE env var > config.yaml > "digest".
     mode = args.mode or os.environ.get("MODE") or config.get("mode", "digest")
     # Output priority: --html flag > OUTPUT env var > config.yaml > "email".
@@ -130,13 +132,15 @@ def main() -> int:
     if not repos:
         print("No trending repos found — aborting.", file=sys.stderr)
         return 1
-    print(f"Got {len(repos)} repos. Mode={mode}, model={model}. Writing the digest ...")
+    client = get_client(model)  # auto-detects provider from your API key
+    print(f"Got {len(repos)} repos. Provider={client.label}, "
+          f"model={client.model}, mode={mode}. Writing the digest ...")
 
     instructions = load_instructions()
     if mode == "detail":
-        markdown_body = summarize_detailed(repos, instructions, model)
+        markdown_body = summarize_detailed(repos, instructions, client)
     else:
-        markdown_body = summarize(repos, instructions, model)
+        markdown_body = summarize(repos, instructions, client)
 
     today = dt.date.today().strftime("%b %d, %Y")
     mode_tag = " · detail" if mode == "detail" else ""

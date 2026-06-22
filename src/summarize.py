@@ -1,7 +1,8 @@
-"""Turn the trending list into an email digest using the Claude API.
+"""Turn the trending list into an email digest using any supported LLM.
 
 The "voice" and rules of the digest come entirely from prompts/instructions.md,
 so you can change the output by editing that file — no code changes required.
+The model/provider comes from src/llm.py (set one API key, it just works).
 
 Two modes:
   • digest  -> ONE call summarizes all repos together (fast, cheap).
@@ -11,25 +12,13 @@ Two modes:
 
 from __future__ import annotations
 
-import os
-
-from anthropic import Anthropic
-
 from .fetch_trending import Repo
-
-
-def _client() -> Anthropic:
-    return Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
-
-def _cached_system(instructions: str) -> list[dict]:
-    # Editable instructions as a cached system prompt. In detail mode this is
-    # identical across every per-repo call, so caching gives real savings.
-    return [{"type": "text", "text": instructions, "cache_control": {"type": "ephemeral"}}]
-
-
-def _text(resp) -> str:
-    return "".join(block.text for block in resp.content if block.type == "text")
+from .llm import LLM
+from .settings import (
+    MAX_TOKENS_DETAIL_SECTION,
+    MAX_TOKENS_DIGEST,
+    MAX_TOKENS_SYNTHESIS,
+)
 
 
 def _format_one(r: Repo, idx: int) -> str:
@@ -57,33 +46,24 @@ def _format_repos(repos: list[Repo]) -> str:
 
 
 # ── digest mode ──────────────────────────────────────────────────────────────
-def summarize(repos: list[Repo], instructions: str, model: str) -> str:
+def summarize(repos: list[Repo], instructions: str, client: LLM) -> str:
     """One call for the whole list. Returns the digest as Markdown."""
-    client = _client()
     user_msg = (
         "Here are today's trending GitHub repositories. Write the digest in "
         "Markdown, following your instructions.\n\n"
         f"{_format_repos(repos)}"
     )
-    resp = client.messages.create(
-        model=model,
-        max_tokens=4096,
-        system=_cached_system(instructions),
-        messages=[{"role": "user", "content": user_msg}],
-    )
-    return _text(resp)
+    return client.chat(instructions, user_msg, max_tokens=MAX_TOKENS_DIGEST)
 
 
 # ── detail mode ──────────────────────────────────────────────────────────────
 def summarize_detailed(
-    repos: list[Repo], instructions: str, model: str, log=print
+    repos: list[Repo], instructions: str, client: LLM, log=print
 ) -> str:
     """One LLM call per repo for a deep section, then assemble + synthesize.
 
     Returns the full digest as Markdown.
     """
-    client = _client()
-    system = _cached_system(instructions)
     sections: list[str] = []
 
     for i, r in enumerate(repos, 1):
@@ -95,13 +75,9 @@ def summarize_detailed(
             "with the `### [owner/repo](url)` heading.\n\n"
             f"{_format_one(r, i)}"
         )
-        resp = client.messages.create(
-            model=model,
-            max_tokens=1500,
-            system=system,
-            messages=[{"role": "user", "content": user_msg}],
+        sections.append(
+            client.chat(instructions, user_msg, max_tokens=MAX_TOKENS_DETAIL_SECTION).strip()
         )
-        sections.append(_text(resp).strip())
 
     body = "\n\n".join(sections)
 
@@ -117,13 +93,9 @@ def summarize_detailed(
         "Separate the two with a line containing only `---PICK---`.\n\n"
         f"{body}"
     )
-    resp = client.messages.create(
-        model=model,
-        max_tokens=600,
-        system=system,
-        messages=[{"role": "user", "content": overview}],
-    )
-    intro, _, pick = _text(resp).partition("---PICK---")
+    intro, _, pick = client.chat(
+        instructions, overview, max_tokens=MAX_TOKENS_SYNTHESIS
+    ).partition("---PICK---")
 
     parts = [intro.strip(), body, pick.strip()]
     return "\n\n".join(p for p in parts if p)
