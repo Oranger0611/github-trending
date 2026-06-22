@@ -38,7 +38,7 @@ other provider. (You can also run it locally on demand.)
 
 ---
 
-## 🤖 Set up the daily email (the main feature)
+## 🤖 Set up the daily email
 
 This is the whole point: **configure it once, get a digest every morning forever.**
 Takes about 3 minutes.
