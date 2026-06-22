@@ -68,7 +68,7 @@ Optional repo **Variables** (same screen, *Variables* tab): `MODEL`, `MODE`, `OU
 - The workflow is already in [`.github/workflows/daily-trending.yml`](.github/workflows/daily-trending.yml).
 - Test it immediately: **Actions → Daily GitHub Trending Digest → Run workflow**.
   You should get the email within a minute.
-- After that, it runs on its own — **`00:00 UTC` daily** (`07:00` Vietnam time).
+- After that, it runs on its own — **`00:00 UTC` daily**.
 
 ### 4. (Optional) Change the schedule
 
