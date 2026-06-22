@@ -5,8 +5,11 @@ on:
   # Runs automatically every day on the `main` branch, using the
   # prompt committed in prompts/instructions.md.
   schedule:
-    # 00:00 UTC daily (= 07:00 Vietnam time, UTC+7). https://crontab.guru
-    - cron: "0 0 * * *"
+    # 00:23 UTC daily (= 07:23 Vietnam time, UTC+7). https://crontab.guru
+    # NOTE: avoid round times like "0 0" — the top of the hour is the most
+    # congested slot on GitHub Actions, so those runs get delayed or dropped.
+    # An odd minute (e.g. :23) is far more reliable.
+    - cron: "23 0 * * *"
 
   # ── SPECIAL MODE ──────────────────────────────────────────────
   # Push a branch whose name starts with `run/` to trigger a one-off
