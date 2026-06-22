@@ -45,14 +45,22 @@ jobs:
       - name: Send the digest
         run: python -m src.main
         env:
+          # LLM provider — set whichever ONE you use as a repo secret; the rest
+          # stay empty and the app auto-detects the one that's present.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+          # Only needed if you set more than one key above (anthropic|openai|gemini|qwen).
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}   # optional; defaults to GMAIL_USER
           # The cron always emails (never writes a local file on the runner).
           OUTPUT: ${{ vars.OUTPUT || 'email' }}
           # Optional overrides via repo Variables (Settings → Variables):
-          #   MODEL  e.g. claude-opus-4-8
+          #   MODEL  e.g. gpt-4o-mini, gemini-2.0-flash, qwen-plus, claude-opus-4-8
           #   MODE   digest | detail
           MODEL: ${{ vars.MODEL }}
           MODE: ${{ vars.MODE }}

@@ -32,14 +32,12 @@ max_repos: 12
 include_readme: true
 readme_chars: 6000   # how much of each README to feed the model (chars)
 
-# Claude model used to write the digest. Pick whichever you like:
-#   claude-opus-4-8    -> highest quality, most detailed (pricier)
-#   claude-sonnet-4-6  -> great quality, cheap (good daily default)
-#   claude-haiku-4-5-20251001 -> fastest & cheapest, lighter detail
-# You can also override per-run without editing this file:
-#   - CLI:  python -m src.main --model claude-opus-4-8
-#   - env:  MODEL=claude-opus-4-8 python -m src.main
-model: claude-sonnet-4-6
+# Model name. Leave BLANK to use your provider's sensible default
+# (Claude -> claude-sonnet-4-6, OpenAI -> gpt-4o-mini, Gemini -> gemini-2.0-flash,
+#  Qwen -> qwen-plus). Only set this if you want a specific model.
+# Which provider is used depends on which API key you set — see .env / README.
+# Override per-run too:  python -m src.main --model gpt-4o-mini
+model: ""
 
 # Email subject line. The date is appended automatically.
 subject_prefix: "🔥 GitHub Trending"

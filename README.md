@@ -4,13 +4,15 @@
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Runs on](https://img.shields.io/badge/runs%20on-GitHub%20Actions-black)
-![LLM](https://img.shields.io/badge/summaries-Claude-orange)
-![Cost](https://img.shields.io/badge/cost-~%240.03–0.10%2Fday-green)
+![LLM](https://img.shields.io/badge/LLM-Claude%20|%20GPT%20|%20Gemini%20|%20Qwen-orange)
+![Cost](https://img.shields.io/badge/cost-free%20with%20Qwen%20•%20~%240.10%2Fday%20otherwise-brightgreen)
 
 Set it up once on **GitHub Actions** and forget it. Every morning it scrapes
-[github.com/trending](https://github.com/trending), asks **Claude** to turn the raw
-list into a readable digest, and **emails it to your inbox** — automatically, for
-free, while you sleep. (You can also run it locally on demand.)
+[github.com/trending](https://github.com/trending), asks an **LLM of your choice**
+(Claude, OpenAI, Gemini, or Qwen) to turn the raw list into a readable digest, and
+**emails it to your inbox** — automatically, while you sleep. It can run
+**completely free** on [Qwen's free token quota](#-cost), or for ~$0.10/day on any
+other provider. (You can also run it locally on demand.)
 
 [**▶ Set up the daily email**](#-set-up-the-daily-email-the-main-feature) ·
 [How it works](#-how-it-works) ·
@@ -54,12 +56,12 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 
 | Secret | Value |
 |---|---|
-| `ANTHROPIC_API_KEY` | <https://console.anthropic.com/settings/keys> |
+| **one LLM key** (see [Choose your LLM](#-choose-your-llm)) | e.g. `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `QWEN_API_KEY` |
 | `GMAIL_USER` | your Gmail address (the sender) |
 | `GMAIL_APP_PASSWORD` | a 16-char **App Password** — <https://myaccount.google.com/apppasswords> (needs 2-Step Verification on; **not** your login password) |
 | `MAIL_TO` | *(optional)* who receives it; defaults to yourself |
 
-Optional repo **Variables** (same screen, *Variables* tab): `MODEL`, `MODE`, `OUTPUT`.
+Optional repo **Variables** (same screen, *Variables* tab): `MODEL`, `MODE`, `OUTPUT`, `LLM_PROVIDER`.
 
 ### 3. Turn it on & test
 
@@ -92,7 +94,7 @@ That's the entire setup. Everything below is optional tuning.
                   └──────────┬───────────┘
                              ▼
                   ┌──────────────────────┐
-                  │    src/summarize     │  Claude writes the digest,
+                  │    src/summarize     │  your LLM writes the digest,
                   │  (prompts/*.md)      │  guided by your prompt file
                   └──────────┬───────────┘
                              ▼
@@ -161,50 +163,67 @@ since: daily           # daily | weekly | monthly
 max_repos: 12
 include_readme: true   # pull READMEs for deeper summaries
 mode: digest           # digest = one call for all | detail = per-repo deep dive
-model: claude-sonnet-4-6
+model: ""              # blank = your provider's default; or set a specific model
 ```
 
-### Picking a model
+### 🧠 Choose your LLM
 
-| Model | Best for | Relative cost |
-|---|---|---|
-| `claude-opus-4-8` | Highest quality, follows formatting rules best | $$$ |
-| `claude-sonnet-4-6` | Great daily default | $ |
-| `claude-haiku-4-5-20251001` | Fastest & cheapest | ¢ |
+**Set exactly one API key and it just works** — the app auto-detects the provider.
+Switch providers anytime to optimize for cost or free quotas; nothing else changes.
 
-Override per-run without editing the file: set a repo **Variable** `MODEL` (for the
-cron), or use `--model` / `MODEL=` locally.
+| Provider | Set this key | Get a key | Default model |
+|---|---|---|---|
+| **Claude** (Anthropic) | `ANTHROPIC_API_KEY` | <https://console.anthropic.com/settings/keys> | `claude-sonnet-4-6` |
+| **OpenAI** | `OPENAI_API_KEY` | <https://platform.openai.com/api-keys> | `gpt-4o-mini` |
+| **Gemini** (Google) | `GEMINI_API_KEY` | <https://aistudio.google.com/apikey> | `gemini-2.0-flash` |
+| **Qwen** (Alibaba) | `QWEN_API_KEY` | <https://dashscope.console.aliyun.com/> *(free monthly tokens)* | `qwen-plus` |
+
+- **Pick a specific model** with `MODEL` (env / repo Variable) or `--model`, e.g.
+  `MODEL=qwen-turbo` or `--model gpt-4o`. Leave it blank to use the default above.
+- **If you set more than one key**, choose with `LLM_PROVIDER=qwen` (or `anthropic`,
+  `openai`, `gemini`).
+
+> Under the hood: Qwen, Gemini, and OpenAI all speak the OpenAI Chat Completions
+> protocol, so the same client library covers all three; Claude uses its native SDK.
 
 ---
 
 ## 💰 Cost
 
-This is cheap to run. The only paid piece is the Claude API call(s) that write the
-digest — **roughly `$0.03–0.10` per day**, i.e. about **$1–3 for a whole month**.
+> ### 🆓 It can be **100% free** — just use Qwen.
+> [Qwen (Alibaba)](#-choose-your-llm) gives a generous free monthly token quota,
+> and everything else here (scraping, GitHub Actions, Gmail) is already free. So a
+> daily digest can cost you **nothing**. Set `QWEN_API_KEY` and you're done.
+
+On a paid provider the only cost is the LLM call(s) that write the digest —
+**roughly `$0.03–0.10` per day**, i.e. about **$1–3 for a whole month**.
 
 | What | Cost |
 |---|---|
-| **Claude summarization** | **~$0.03–0.10 per day** (varies by model & mode) |
+| **LLM summarization (Qwen free tier)** | **$0 — within the free quota** |
+| LLM summarization (paid providers) | ~$0.03–0.10 per day (varies by model & mode) |
 | GitHub Trending scrape | Free |
 | Reading repo READMEs (GitHub API) | Free |
 | **GitHub Actions (daily cron)** | **Free** (well within the free tier) |
 | Gmail sending | Free |
 
-- `digest` mode = one Claude call/day → the **low** end (~$0.03).
-- `detail` mode = one call **per repo** → the **high** end (~$0.10), more on `claude-opus-4-8`.
-- Cut it further: lower `max_repos`, trim `readme_chars`, or use `claude-haiku-4-5-20251001`.
+- `digest` mode = one LLM call/day → the **low** end (~$0.03 on paid, free on Qwen).
+- `detail` mode = one call **per repo** → the **high** end (~$0.10), more on premium models.
+- Cheapest options: **Qwen** (free quota), Gemini Flash, or Claude Haiku. You can
+  also lower `max_repos` or trim `readme_chars`.
 
 ---
 
 ## 💻 Run locally (optional)
 
 Don't want to wait for the cron, or want to preview without email? Run it on your
-machine. **Only `ANTHROPIC_API_KEY` is needed** — no Gmail required.
+machine. **Only one LLM key is needed** (see [Choose your LLM](#-choose-your-llm))
+— no Gmail required.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # paste your ANTHROPIC_API_KEY
+cp .env.example .env        # paste ONE LLM key (Claude/OpenAI/Gemini/Qwen)
 
 python -m src.main --html              # writes output/trending-<date>.html and opens it
 python -m src.main --html --mode detail  # deeper per-repo version
@@ -234,7 +253,8 @@ just run `python -m src.main`.
 ```
 src/
   fetch_trending.py   scrape trending + pull repo READMEs
-  summarize.py        Claude turns the list into a digest (digest & detail modes)
+  llm.py              provider-agnostic client (Claude / OpenAI / Gemini / Qwen)
+  summarize.py        turns the list into a digest (digest & detail modes)
   render_email.py     Markdown → styled, email-safe HTML
   send_email.py       Gmail SMTP delivery
   main.py             orchestrates: fetch → summarize → render → deliver
